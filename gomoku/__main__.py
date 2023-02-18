@@ -1,11 +1,16 @@
+import sys
 from .board import Board
-from .tui import TUI
+from . import tui, gui
 
 
 b = Board((15, 15))
-ui = TUI()
 
-while True:
-    print(ui.render(b))
-    x, y = input('Go [x y]:').split()
-    b = b.add(int(x), int(y))
+if len(sys.argv) == 2 and sys.argv[1] == 'tui':
+    ui = tui.TUI()
+    while True:
+        print(ui.render(b))
+        x, y = input('Go [x y]:').split()
+        b = b.add(int(x), int(y))
+else:
+    app = gui.App()
+    app.mainloop()

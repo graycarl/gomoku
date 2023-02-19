@@ -15,18 +15,29 @@ class App(tk.Frame):
         self.render_board(self.current)
 
     def init_canvas(self):
-        self.canvas = tk.Canvas(self, width=self.canvassize, height=self.canvassize,
-                                background='#b85')
+        self.canvas = tk.Canvas(
+            self, width=self.canvassize, height=self.canvassize,
+            background='#b85')
         self.canvas.grid()
         self.canvas.bind('<Button-1>', self._on_click)
 
     def _on_click(self, event):
         print(f'Click at: {event.x} {event.y}')
-        x = sorted(self.x_positions, key=lambda p: abs(event.x - p[0]))[0]
-        y = sorted(self.y_positions, key=lambda p: abs(event.y - p[0]))[0]
-        print(f'Nearest: {x} {y}')
-        self.current = self.current.add(x[1], y[1])
-        self.render_peice(self.current.pieces[-1])
+        try:
+            x = next(filter(
+                lambda x: abs(event.x - x[0]) < self.interval * 0.4,
+                self.x_positions
+            ))
+            y = next(filter(
+                lambda y: abs(event.y - y[0]) < self.interval * 0.4,
+                self.y_positions
+            ))
+        except StopIteration:
+            pass
+        else:
+            print(f'Nearest: {x} {y}')
+            self.current = self.current.add(x[1], y[1])
+            self.render_peice(self.current.pieces[-1])
 
     def render_board(self, board: Board):
         self.x_positions, self.y_positions = [], []
@@ -57,4 +68,4 @@ class App(tk.Frame):
         y1 = y0 - size * 0.5
         y2 = y0 + size * 0.5
         self.canvas.create_oval(x1, y1, x2, y2,
-                                outline='black', width=1, fill=fill)
+                                outline='gray', width=1, fill=fill)

@@ -1,10 +1,11 @@
 import tkinter as tk
 from .board import Board, Piece
+from .score import MMSearch
 
 
 class App(tk.Frame):
 
-    def __init__(self, canvassize=800, boardsize=15):
+    def __init__(self, canvassize=600, boardsize=7):
         super(App, self).__init__()
         self.canvassize = canvassize
         self.grid()
@@ -13,6 +14,13 @@ class App(tk.Frame):
         self.padding = canvassize / 10
         self.interval = (canvassize - self.padding * 2) / (boardsize - 1)
         self.render_board(self.current)
+        self.init_game()
+
+    def init_game(self):
+        x = self.current.size[0] // 2
+        y = self.current.size[1] // 2
+        self.current = self.current.add(x, y)
+        self.render_peice(self.current.last_piece)
 
     def init_canvas(self):
         self.canvas = tk.Canvas(
@@ -37,7 +45,10 @@ class App(tk.Frame):
         else:
             print(f'Nearest: {x} {y}')
             self.current = self.current.add(x[1], y[1])
-            self.render_peice(self.current.pieces[-1])
+            self.render_peice(self.current.last_piece)
+            mm = MMSearch(self.current.next_color, 3)
+            self.current = mm(self.current)
+            self.render_peice(self.current.last_piece)
 
     def render_board(self, board: Board):
         self.x_positions, self.y_positions = [], []

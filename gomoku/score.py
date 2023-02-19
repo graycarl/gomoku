@@ -1,12 +1,107 @@
-from .board import Board
+from .board import Board, Piece
+from typing import Tuple, List, Optional, Dict
 
 
-def evaluate(color: str, board: Board) -> int:
-    pass
+class Evaluator:
+    offsets = {
+        'heng': lambda p, o: (p.x + o, p.y),
+        'shu': lambda p, o: (p, p.y + o),
+        'pie': lambda p, o: (p.x - o, p.y + o),
+        'na': lambda p, o: (p.x + o, p.y - o),
+    }
+
+    def __init__(self, color):
+        self.color = color
+
+    def __call__(self, board: Board) -> int:
+        matrix = {(x, y): p for x, y, p in board.iter_position()}
+        mine_score = self._color_score(matrix, self.color)
+        peer_color = 'b' if self.color == 'w' else 'w'
+        peer_score = self._color_score(matrix, peer_color)
+        return mine_score - peer_score
+
+    def _color_score(self,
+                     matrix: Dict[Tuple[int, int], Optional[Piece]],
+                     color: str) -> int:
+        pieces = filter(lambda p: p and p.color == color, matrix.values())
+        scores = {}
+        for p in pieces:
+            p_score = 0
+            for name, func in self.offsets.items():
+                line: List[Optional[Piece]] = []
+                for o in (-1, -2, -3, -4):
+                    try:
+                        op = matrix[func(p, o)]
+                    except KeyError:
+                        break
+                    else:
+                        if op and op.color != color:
+                            break
+                    line.insert(0, op)
+                line.append(p)
+                for o in (1, 2, 3, 4):
+                    try:
+                        op = matrix[func(p, o)]
+                    except KeyError:
+                        break
+                    else:
+                        if op and op.color != color:
+                            break
+                        line.append(op)
+                if len(line) < 5:
+                    continue
+                p_score += self._eval_line(line)
+        scores[p] = p_score
+        return sum(scores.values())
+
+    def _eval_line(self, line: List[Optional[Piece]]):
+        if len(line) < 5:
+            return 0
+        score = 0
+        for shift in range(len(line) - 5 + 1):
+            pieces = line[shift:shift+5]
+            score += self._eval_five(pieces)
+        return score
+
+    def _eval_five(self, pieces: List[Optional[Piece]]):
+        count = 0
+        continus, max_countinus = 0, 0
+        for p in pieces:
+            if p:
+                continus += 1
+                count += 1
+            else:
+                continus = 0
+                max_countinus = max(continus, max_countinus)
+        if max_countinus == 5:
+            return 9999
+        return count + (max_countinus * max_countinus)
 
 
-def best_next(color: str, board: Board) -> Board:
-    pass
+class MMSearch:
+
+    def __init__(self, color: str, max_depth: int):
+        self.color = color
+        self.max_depth = max_depth
+        self.evaluate = Evaluator(color)
+
+    def __call__(self, board: Board) -> Board:
+        self.eval_count = 0
+        s, b = self.best_next(board, depth=1)
+        print(f'Evaluate {self.eval_count} times')
+        return b
+
+    def best_next(self, board: Board, depth: int):
+        subs = []
+        for b in board.next_boards():
+            if depth == self.max_depth:
+                self.eval_count += 1
+                s = self.evaluate(b)
+            else:
+                s, _ = self.best_next(b, depth+1)
+            subs.append((s, b))
+        select = max if depth % 2 == 1 else min
+        return select(subs, key=lambda sb: sb[0])
 
 
 def winner(board: Board) -> str:

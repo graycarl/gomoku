@@ -27,18 +27,19 @@ class Board:
         else:
             return 'w' if latest == 'b' else 'b'
 
+    @property
+    def last_piece(self) -> Piece:
+        try:
+            return self.pieces[-1]
+        except KeyError:
+            return None
+
     def add(self, x: int, y: int) -> 'Board':
         pos = (x, y)
         if any(map(lambda p: p.pos == pos, self.pieces)):
             raise RuntimeError(f'Position {pos} already has piece.')
         p = Piece(self.next_color, x, y)
         return Board(self.size, self.pieces + (p,))
-
-    def get(self, x: int, y: int) -> Optional[Piece]:
-        for p in self.pieces:
-            if p.pos == (x, y):
-                return p
-        return None
 
     def iter_position(self) -> Iterator[Tuple[int, int, Optional[Piece]]]:
         lookup = {(p.x, p.y): p for p in self.pieces}

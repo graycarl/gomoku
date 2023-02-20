@@ -5,7 +5,7 @@ from typing import Tuple, List, Optional, Dict
 class Evaluator:
     offsets = {
         'heng': lambda p, o: (p.x + o, p.y),
-        'shu': lambda p, o: (p, p.y + o),
+        'shu': lambda p, o: (p.x, p.y + o),
         'pie': lambda p, o: (p.x - o, p.y + o),
         'na': lambda p, o: (p.x + o, p.y + o),
     }
@@ -24,6 +24,7 @@ class Evaluator:
                      matrix: Dict[Tuple[int, int], Optional[Piece]],
                      color: str) -> int:
         pieces = filter(lambda p: p and p.color == color, matrix.values())
+        print(f'>> _color_score: {color}')
         scores = {}
         for p in pieces:
             p_score = 0
@@ -61,6 +62,7 @@ class Evaluator:
         for shift in range(len(line) - 5 + 1):
             pieces = line[shift:shift+5]
             score += self._eval_five(pieces)
+        # print(f'eval_line: {score} -- {line}')
         return score
 
     def _eval_five(self, pieces: List[Optional[Piece]]):
@@ -112,13 +114,13 @@ class MMSearch:
                 if alpha is None or s > alpha:
                     alpha = s
                 if parent_beta is not None and alpha >= parent_beta:
-                    # print(f">>> Break on {alpha} >= {parent_beta}")
+                    print(f">>> Break on {alpha} >= {parent_beta}")
                     break
             else:
                 if beta is None or s < beta:
                     beta = s
                 if parent_alpha is not None and beta <= parent_alpha:
-                    # print(f">>> Break on {beta} <= {parent_alpha}")
+                    print(f">>> Break on {beta} <= {parent_alpha}")
                     break
         return select(subs, key=lambda sb: sb[0])
 

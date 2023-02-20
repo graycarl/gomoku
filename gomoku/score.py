@@ -72,9 +72,8 @@ class Evaluator:
                 count += 1
             else:
                 continus = 0
-                max_countinus = max(continus, max_countinus)
+            max_countinus = max(continus, max_countinus)
         if max_countinus == 5:
-            raise RuntimeError
             return 9999
         return count + (max_countinus * max_countinus * max_countinus)
 
@@ -98,7 +97,7 @@ class MMSearch:
     def best_next(self, board: Board, depth: int,
                   parent_alpha: Optional[int] = None,
                   parent_beta: Optional[int] = None):
-        # print(f'>>> {depth} {parent_alpha} {parent_beta}')
+        print(f'>>> {depth} {parent_alpha} {parent_beta}')
         subs = []
         select = max if depth % 2 == 1 else min
         alpha, beta = None, None

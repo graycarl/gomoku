@@ -46,7 +46,7 @@ class App(tk.Frame):
             print(f'Nearest: {x} {y}')
             self.current = self.current.add(x[1], y[1])
             self.render_peice(self.current.last_piece)
-            mm = MMSearch(self.current.next_color, 4)
+            mm = MMSearch(self.current.next_color, 2)
             self.current = mm(self.current)
             self.render_peice(self.current.last_piece)
 

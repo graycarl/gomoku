@@ -1,3 +1,4 @@
+import random
 from dataclasses import dataclass
 from typing import Optional, Tuple, Iterator
 
@@ -43,8 +44,8 @@ class Board:
 
     def iter_position(self) -> Iterator[Tuple[int, int, Optional[Piece]]]:
         lookup = {(p.x, p.y): p for p in self.pieces}
-        for y in range(self.size[1]):
-            for x in range(self.size[0]):
+        for y in random.sample(range(self.size[1]), k=self.size[1]):
+            for x in random.sample(range(self.size[0]), k=self.size[0]):
                 if (x, y) in lookup:
                     yield (x, y, lookup[(x, y)])
                 else:

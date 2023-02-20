@@ -12,5 +12,8 @@ if len(sys.argv) == 2 and sys.argv[1] == 'tui':
         x, y = input('Go [x y]:').split()
         b = b.add(int(x), int(y))
 else:
-    app = gui.App()
+    if sys.argv[1].isnumeric():
+        app = gui.App(boardsize=int(sys.argv[1]))
+    else:
+        app = gui.App()
     app.mainloop()

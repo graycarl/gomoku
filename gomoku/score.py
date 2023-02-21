@@ -1,4 +1,5 @@
 from .board import Board, Piece
+import functools
 from typing import Tuple, List, Optional, Dict
 
 
@@ -12,19 +13,21 @@ class Evaluator:
 
     def __init__(self, color):
         self.color = color
+        self.count = 0
 
     def __call__(self, board: Board) -> int:
         matrix = {(x, y): p for x, y, p in board.iter_position()}
         mine_score = self._color_score(matrix, self.color)
         peer_color = 'b' if self.color == 'w' else 'w'
         peer_score = self._color_score(matrix, peer_color)
-        return mine_score - peer_score
+        self.count += 1
+        return mine_score - int(peer_score * 1.5)
 
     def _color_score(self,
                      matrix: Dict[Tuple[int, int], Optional[Piece]],
                      color: str) -> int:
         pieces = filter(lambda p: p and p.color == color, matrix.values())
-        print(f'>> _color_score: {color}')
+        # print(f'>> _color_score: {color}')
         scores = {}
         for p in pieces:
             p_score = 0
@@ -51,11 +54,13 @@ class Evaluator:
                     line.append(op)
                 if len(line) < 5:
                     continue
-                p_score += self._eval_line(line)
+                # Line: e.g. [0, 0, 1, 1, 0, 0]
+                p_score += self._eval_line(tuple([1 if p else 0 for p in line]))
         scores[p] = p_score
         return sum(scores.values())
 
-    def _eval_line(self, line: List[Optional[Piece]]):
+    @functools.cache
+    def _eval_line(self, line: Tuple[int, ...]):
         if len(line) < 5:
             return 0
         score = 0
@@ -65,7 +70,7 @@ class Evaluator:
         # print(f'eval_line: {score} -- {line}')
         return score
 
-    def _eval_five(self, pieces: List[Optional[Piece]]):
+    def _eval_five(self, pieces: Tuple[int, ...]):
         count = 0
         continus, max_countinus = 0, 0
         for p in pieces:
@@ -77,7 +82,7 @@ class Evaluator:
             max_countinus = max(continus, max_countinus)
         if max_countinus == 5:
             return 9999
-        return count + (max_countinus * max_countinus * max_countinus)
+        return count + pow(max_countinus, 5)
 
 
 class MMSearch:
@@ -91,21 +96,26 @@ class MMSearch:
         self.evaluate = Evaluator(color)
 
     def __call__(self, board: Board) -> Board:
-        self.eval_count = 0
+        self.evaluate.count = 0
         s, b = self.best_next(board, depth=1)
-        print(f'Evaluate {self.eval_count} times')
+        print(f'Evaluate {self.evaluate.count} times')
         return b
 
     def best_next(self, board: Board, depth: int,
                   parent_alpha: Optional[int] = None,
                   parent_beta: Optional[int] = None):
-        print(f'>>> {depth} {parent_alpha} {parent_beta}')
+        # print(f'>>> {depth} {parent_alpha} {parent_beta}')
         subs = []
         select = max if depth % 2 == 1 else min
         alpha, beta = None, None
-        for b in board.next_boards():
+        sub_boards = board.next_boards()
+        if depth != self.max_depth:
+            # 这里的排序是为了 alpha-beta 剪枝更有效
+            sub_boards = sorted(sub_boards,
+                                key=self.evaluate,
+                                reverse=(select is max))
+        for b in sub_boards:
             if depth == self.max_depth:
-                self.eval_count += 1
                 s = self.evaluate(b)
             else:
                 s, _ = self.best_next(b, depth+1, alpha, beta)
@@ -114,13 +124,13 @@ class MMSearch:
                 if alpha is None or s > alpha:
                     alpha = s
                 if parent_beta is not None and alpha >= parent_beta:
-                    print(f">>> Break on {alpha} >= {parent_beta}")
+                    # print(f">>> Break on {alpha} >= {parent_beta}")
                     break
             else:
                 if beta is None or s < beta:
                     beta = s
                 if parent_alpha is not None and beta <= parent_alpha:
-                    print(f">>> Break on {beta} <= {parent_alpha}")
+                    # print(f">>> Break on {beta} <= {parent_alpha}")
                     break
         return select(subs, key=lambda sb: sb[0])
 

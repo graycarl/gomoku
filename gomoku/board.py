@@ -18,6 +18,7 @@ class Piece:
 class Board:
     size: Tuple[int, int]
     pieces: Tuple[Piece, ...] = ()
+    step: int = 0
 
     @property
     def next_color(self) -> str:
@@ -30,28 +31,27 @@ class Board:
 
     @property
     def last_piece(self) -> Piece:
-        try:
-            return self.pieces[-1]
-        except KeyError:
-            return None
+        return self.pieces[-1]
 
     def add(self, x: int, y: int) -> 'Board':
         pos = (x, y)
         if any(map(lambda p: p.pos == pos, self.pieces)):
             raise RuntimeError(f'Position {pos} already has piece.')
         p = Piece(self.next_color, x, y)
-        return Board(self.size, self.pieces + (p,))
+        return Board(self.size, self.pieces + (p,), step=self.step + 1)
 
     def iter_position(self) -> Iterator[Tuple[int, int, Optional[Piece]]]:
         lookup = {(p.x, p.y): p for p in self.pieces}
-        for y in random.sample(range(self.size[1]), k=self.size[1]):
-            for x in random.sample(range(self.size[0]), k=self.size[0]):
+        for y in range(self.size[1]):
+            for x in range(self.size[0]):
                 if (x, y) in lookup:
                     yield (x, y, lookup[(x, y)])
                 else:
                     yield (x, y, None)
 
     def next_boards(self) -> Iterator['Board']:
-        for x, y, p in self.iter_position():
+        positions = list(self.iter_position())
+        random.shuffle(positions)
+        for x, y, p in positions:
             if not p:
                 yield self.add(x, y)

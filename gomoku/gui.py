@@ -1,13 +1,17 @@
 import tkinter as tk
+import cProfile
+import contextlib
+import pathlib
 from .board import Board, Piece
 from .score import MMSearch
 
 
 class App(tk.Frame):
 
-    def __init__(self, canvassize=600, boardsize=7):
+    def __init__(self, canvassize=600, boardsize=7, profile=False):
         super(App, self).__init__()
         self.canvassize = canvassize
+        self.profile = profile
         self.grid()
         self.init_canvas()
         self.current = Board(size=(boardsize, boardsize))
@@ -29,8 +33,22 @@ class App(tk.Frame):
         self.canvas.grid()
         self.canvas.bind('<Button-1>', self._on_click)
 
+    @contextlib.contextmanager
+    def maybe_profile(self):
+        path = pathlib.Path(f'/tmp/gomoku/profile.{self.current.step}.prf')
+        path.parent.mkdir(exist_ok=True)
+        if self.profile:
+            pf = cProfile.Profile()
+            pf.enable()
+            yield
+            pf.disable()
+            pf.dump_stats(path)
+            print(f'Profile: {path}')
+        else:
+            yield
+
     def _on_click(self, event):
-        print(f'Click at: {event.x} {event.y}')
+        # print(f'Click at: {event.x} {event.y}')
         try:
             x = next(filter(
                 lambda x: abs(event.x - x[0]) < self.interval * 0.4,
@@ -43,11 +61,12 @@ class App(tk.Frame):
         except StopIteration:
             pass
         else:
-            print(f'Nearest: {x} {y}')
+            # print(f'Nearest: {x} {y}')
             self.current = self.current.add(x[1], y[1])
             self.render_peice(self.current.last_piece)
-            mm = MMSearch(self.current.next_color, 2)
-            self.current = mm(self.current)
+            with self.maybe_profile():
+                mm = MMSearch(self.current.next_color, 3)
+                self.current = mm(self.current)
             self.render_peice(self.current.last_piece)
 
     def render_board(self, board: Board):

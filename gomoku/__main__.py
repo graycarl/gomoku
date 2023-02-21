@@ -12,8 +12,9 @@ if len(sys.argv) == 2 and sys.argv[1] == 'tui':
         x, y = input('Go [x y]:').split()
         b = b.add(int(x), int(y))
 else:
+    profile = ('-p' in sys.argv)
     if sys.argv[1].isnumeric():
-        app = gui.App(boardsize=int(sys.argv[1]))
+        app = gui.App(boardsize=int(sys.argv[1]), profile=profile)
     else:
-        app = gui.App()
+        app = gui.App(profile=profile)
     app.mainloop()

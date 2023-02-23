@@ -1,20 +1,17 @@
-import sys
+import argparse
 from .board import Board
-from . import tui, gui
+from . import gui
 
+
+parser = argparse.ArgumentParser(prog='Gomoku',
+                                 description='Gomoku game application')
+parser.add_argument('size', type=int, nargs='?', default=15)
+parser.add_argument('-p', '--profile', action='store_true',
+                    help='Enable profile')
+
+args = parser.parse_args()
 
 b = Board((15, 15))
 
-if len(sys.argv) == 2 and sys.argv[1] == 'tui':
-    ui = tui.TUI()
-    while True:
-        print(ui.render(b))
-        x, y = input('Go [x y]:').split()
-        b = b.add(int(x), int(y))
-else:
-    profile = ('-p' in sys.argv)
-    if sys.argv[1].isnumeric():
-        app = gui.App(boardsize=int(sys.argv[1]), profile=profile)
-    else:
-        app = gui.App(profile=profile)
-    app.mainloop()
+app = gui.App(boardsize=args.size, profile=args.profile)
+app.mainloop()

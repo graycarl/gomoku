@@ -1,6 +1,7 @@
-from .board import Board, Piece
 import functools
+import datetime
 from typing import Tuple, List, Optional, Dict
+from .board import Board, Piece
 
 
 class Evaluator:
@@ -96,9 +97,11 @@ class MMSearch:
         self.evaluate = Evaluator(color)
 
     def __call__(self, board: Board) -> Board:
+        startat = datetime.datetime.now()
         self.evaluate.count = 0
         s, b = self.best_next(board, depth=1)
-        print(f'Evaluate {self.evaluate.count} times')
+        endat = datetime.datetime.now()
+        print(f'Evaluate {self.evaluate.count} times, using {endat - startat}')
         return b
 
     def best_next(self, board: Board, depth: int,

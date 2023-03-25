@@ -13,6 +13,10 @@ class BoardClick(UIEvent):
         self.y = y
 
 
+class Tick(UIEvent):
+    pass
+
+
 class GUI:
 
     def __init__(self, canvassize, on_event):
@@ -23,6 +27,7 @@ class GUI:
         self.frame.grid(column=0, row=0)
         self.padding = canvassize / 10
         self.canvas = self.__init_canvas(self.frame, canvassize)
+        self.__init_tick(100)
 
     def __init_canvas(self, frame, canvassize):
         canvas = tk.Canvas(
@@ -45,6 +50,12 @@ class GUI:
             pass
         else:
             self.on_event(BoardClick(x[1], y[1]))
+
+    def __init_tick(self, timeout):
+        def tick():
+            self.on_event(Tick())
+            self.root.after(timeout, tick)
+        self.root.after(timeout, tick)
 
     def init_board(self, board: Board):
         self.x_positions, self.y_positions = [], []
@@ -82,6 +93,9 @@ class GUI:
         y2 = y0 + size * 0.5
         self.canvas.create_oval(x1, y1, x2, y2,
                                 outline='gray', width=1, fill=fill)
+
+    def render_message(self, message):
+        pass
 
     def mainloop(self):
         self.root.mainloop()

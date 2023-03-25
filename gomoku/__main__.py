@@ -1,6 +1,5 @@
 import argparse
-from .board import Board
-from . import gui
+from .app import App
 
 
 parser = argparse.ArgumentParser(prog='Gomoku',
@@ -11,7 +10,5 @@ parser.add_argument('-p', '--profile', action='store_true',
 
 args = parser.parse_args()
 
-b = Board((15, 15))
-
-app = gui.App(boardsize=args.size, profile=args.profile)
-app.mainloop()
+app = App(boardsize=args.size, profile=args.profile)
+app.run()

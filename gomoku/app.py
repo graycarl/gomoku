@@ -25,6 +25,7 @@ class App:
         y = self.current.size[1] // 2
         self.current = self.current.add(x, y)
         self.ui.init_board(self.current)
+        self.ui.log_message('Init game done.')
 
     @contextlib.contextmanager
     def maybe_profile(self):
@@ -44,6 +45,7 @@ class App:
         assert self.thinking is None
         mm = MMSearch(self.current.next_color, 3)
         self.thinking = self.thinking_executor.submit(lambda: mm(self.current))
+        self.ui.log_message('Thinking...')
 
     def on_event(self, event: ui.UIEvent):
         if isinstance(event, ui.BoardClick):
@@ -51,13 +53,15 @@ class App:
                 return
             self.current = self.current.add(event.x, event.y)
             self.ui.render_piece(self.current.last_piece)
+            self.ui.log_message(f'You put on {event.x},{event.y}')
             self.think()
         elif isinstance(event, ui.Tick):
             if self.thinking:
                 if not self.thinking.done():
-                    print('Still thinking ...')
+                    pass
                 else:
-                    print('Think done')
                     self.current = self.thinking.result()
+                    p = self.current.last_piece
                     self.thinking = None
-                    self.ui.render_piece(self.current.last_piece)
+                    self.ui.render_piece(p)
+                    self.ui.log_message(f'AI put on {p.pos}')

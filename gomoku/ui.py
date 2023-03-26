@@ -23,16 +23,20 @@ class GUI:
         self.canvassize = canvassize
         self.on_event = on_event
         self.root = tk.Tk()
-        self.frame = tk.Frame(self.root)
+        self.frame = tk.Frame(self.root, background='gray')
         self.frame.grid(column=0, row=0)
+        self.frame.grid_rowconfigure(1, weight=1)
         self.padding = canvassize / 10
         self.canvas = self.__init_canvas(self.frame, canvassize)
+        self.__init_controllers(self.frame)
+        self.logarea = self.__init_logarea(self.frame)
         self.__init_tick(100)
 
     def __init_canvas(self, frame, canvassize):
         canvas = tk.Canvas(
-            self.frame, width=canvassize, height=canvassize, background='#b85')
-        canvas.grid(column=0, row=0)
+            self.frame, width=canvassize, height=canvassize,
+            background='#b85', highlightbackground='gray')
+        canvas.grid(column=0, row=0, rowspan=2)
         canvas.bind('<Button-1>', self.__canvas_click)
         return canvas
 
@@ -56,6 +60,19 @@ class GUI:
             self.on_event(Tick())
             self.root.after(timeout, tick)
         self.root.after(timeout, tick)
+
+    def __init_controllers(self, frame):
+        cs = tk.LabelFrame(
+            frame, text='Control Panel',
+            width=300, height=200, background='gray')
+        cs.grid(column=1, row=0, padx=2, pady=4)
+        return cs
+
+    def __init_logarea(self, frame):
+        logarea = tk.Text(frame, background='gray', wrap='word', width=40)
+        logarea.grid(column=1, row=1, padx=2, pady=4,
+                     sticky=(tk.N, tk.S, tk.E, tk.W))
+        return logarea
 
     def init_board(self, board: Board):
         self.x_positions, self.y_positions = [], []
@@ -94,8 +111,9 @@ class GUI:
         self.canvas.create_oval(x1, y1, x2, y2,
                                 outline='gray', width=1, fill=fill)
 
-    def render_message(self, message):
-        pass
+    def log_message(self, message):
+        self.logarea.insert('end', message + '\n')
+        self.logarea.see('end')
 
     def mainloop(self):
         self.root.mainloop()

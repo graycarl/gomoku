@@ -23,6 +23,7 @@ class App:
         self.current = Board(size=(boardsize, boardsize))
         x = self.current.size[0] // 2
         y = self.current.size[1] // 2
+        self.mmsearch = MMSearch('b', 2)
         self.current = self.current.add(x, y)
         self.ui.init_board(self.current)
         self.ui.log_message('Init game done.')
@@ -43,8 +44,8 @@ class App:
 
     def think(self):
         assert self.thinking is None
-        mm = MMSearch(self.current.next_color, 3)
-        self.thinking = self.thinking_executor.submit(lambda: mm(self.current))
+        self.thinking = self.thinking_executor.submit(
+            lambda: self.mmsearch(self.current))
         self.ui.log_message('Thinking...')
 
     def on_event(self, event: ui.UIEvent):
@@ -52,16 +53,22 @@ class App:
             if self.thinking:
                 return
             self.current = self.current.add(event.x, event.y)
-            self.ui.render_piece(self.current.last_piece)
-            self.ui.log_message(f'You put on {event.x},{event.y}')
+            p = self.current.last_piece
+            self.ui.render_piece(p)
+            self.ui.log_message(f'You put on {p}')
             self.think()
         elif isinstance(event, ui.Tick):
             if self.thinking:
                 if not self.thinking.done():
-                    pass
+                    self.ui.log_message(
+                        f'Thinking ... {self.mmsearch.iter_times}', amend=True)
                 else:
-                    self.current = self.thinking.result()
+                    self.current, time = self.thinking.result()
+                    self.ui.log_message(
+                        f'Thinking ... {self.mmsearch.iter_times} '
+                        f'Using {time.total_seconds():.2f}s',
+                        amend=True)
                     p = self.current.last_piece
                     self.thinking = None
                     self.ui.render_piece(p)
-                    self.ui.log_message(f'AI put on {p.pos}')
+                    self.ui.log_message(f'AI put on {p}')

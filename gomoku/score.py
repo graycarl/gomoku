@@ -96,13 +96,17 @@ class MMSearch:
         self.max_depth = max_depth
         self.evaluate = Evaluator(color)
 
-    def __call__(self, board: Board) -> Board:
+    def __call__(self, board: Board) -> Tuple[Board, datetime.timedelta]:
         startat = datetime.datetime.now()
         self.evaluate.count = 0
         s, b = self.best_next(board, depth=1)
         endat = datetime.datetime.now()
         print(f'Evaluate {self.evaluate.count} times, using {endat - startat}')
-        return b
+        return b, endat - startat
+
+    @property
+    def iter_times(self):
+        return self.evaluate.count
 
     def best_next(self, board: Board, depth: int,
                   parent_alpha: Optional[int] = None,

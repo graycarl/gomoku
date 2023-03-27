@@ -30,7 +30,7 @@ class GUI:
         self.canvas = self.__init_canvas(self.frame, canvassize)
         self.__init_controllers(self.frame)
         self.logarea = self.__init_logarea(self.frame)
-        self.__init_tick(100)
+        self.__init_tick(15)
 
     def __init_canvas(self, frame, canvassize):
         canvas = tk.Canvas(
@@ -111,7 +111,10 @@ class GUI:
         self.canvas.create_oval(x1, y1, x2, y2,
                                 outline='gray', width=1, fill=fill)
 
-    def log_message(self, message):
+    def log_message(self, message, amend=False):
+        if amend:
+            s = self.logarea.index('end-2l linestart')
+            self.logarea.delete(s, 'end-1c')
         self.logarea.insert('end', message + '\n')
         self.logarea.see('end')
 

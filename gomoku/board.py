@@ -1,6 +1,6 @@
 import random
 from dataclasses import dataclass
-from typing import Optional, Tuple, Iterator
+from typing import Optional, Tuple, Iterator, List
 
 
 @dataclass(frozen=True)
@@ -49,9 +49,33 @@ class Board:
                 else:
                     yield (x, y, None)
 
+    def get_candidate_positions(self, radius: int = 2) -> List[Tuple[int, int]]:
+        """获取候选位置：只考虑已有子周围的位置"""
+        if not self.pieces:
+            # 空棋盘时，从中心开始
+            center_x, center_y = self.size[0] // 2, self.size[1] // 2
+            return [(center_x, center_y)]
+        
+        candidates = set()
+        occupied = {(p.x, p.y) for p in self.pieces}
+        
+        # 在所有已有子的周围radius格范围内寻找候选位置
+        for piece in self.pieces:
+            for dx in range(-radius, radius + 1):
+                for dy in range(-radius, radius + 1):
+                    if dx == 0 and dy == 0:
+                        continue
+                    x, y = piece.x + dx, piece.y + dy
+                    if (0 <= x < self.size[0] and 0 <= y < self.size[1] and 
+                        (x, y) not in occupied):
+                        candidates.add((x, y))
+        
+        return list(candidates)
+
     def next_boards(self) -> Iterator['Board']:
-        positions = list(self.iter_position())
-        random.shuffle(positions)
-        for x, y, p in positions:
-            if not p:
-                yield self.add(x, y)
+        # 使用候选位置过滤来大幅减少搜索空间
+        candidate_positions = self.get_candidate_positions()
+        random.shuffle(candidate_positions)
+        
+        for x, y in candidate_positions:
+            yield self.add(x, y)

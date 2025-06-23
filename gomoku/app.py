@@ -23,7 +23,7 @@ class App:
         self.current = Board(size=(boardsize, boardsize))
         x = self.current.size[0] // 2
         y = self.current.size[1] // 2
-        self.mmsearch = MMSearch('b', 2)
+        self.mmsearch = MMSearch('b', 3)
         self.current = self.current.add(x, y)
         self.ui.init_board(self.current)
         self.ui.log_message('Init game done.')

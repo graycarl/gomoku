@@ -134,38 +134,93 @@ class MMSearch:
     def iter_times(self):
         return self.evaluate.count
 
+    def _is_critical_position(self, board: Board, test_board: Board) -> bool:
+        """检测是否为关键位置（能形成重大威胁或防守关键威胁）"""
+        score = self.evaluate(test_board)
+        
+        # 检查是否能形成连五（绝对获胜）
+        if abs(score) > 80000:
+            return True
+            
+        # 检查是否能形成活四（强威胁）
+        if abs(score) > 8000:
+            return True
+        
+        # 检查是否能阻止对手的威胁
+        # 通过比较当前局面和下子后的局面来判断
+        current_score = self.evaluate(board)
+        score_diff = abs(score - current_score)
+        
+        # 如果分数变化很大，说明这是关键位置
+        if score_diff > 5000:
+            return True
+            
+        return False
+
+    def _sort_boards_by_priority(self, boards: List[Board], base_board: Board, is_maximizing: bool) -> List[Board]:
+        """根据优先级对棋盘进行排序"""
+        if len(boards) <= 1:
+            return boards
+        
+        critical_boards = []
+        normal_boards = []
+        
+        # 分离关键和普通位置
+        for board in boards:
+            if self._is_critical_position(base_board, board):
+                critical_boards.append(board)
+            else:
+                normal_boards.append(board)
+        
+        # 对关键位置进行评估排序
+        if critical_boards:
+            critical_boards = sorted(critical_boards, 
+                                   key=self.evaluate, 
+                                   reverse=is_maximizing)
+        
+        # 对普通位置进行简单排序（较少评估）
+        if normal_boards:
+            normal_boards = sorted(normal_boards, 
+                                 key=self.evaluate, 
+                                 reverse=is_maximizing)
+        
+        # 关键位置优先
+        return critical_boards + normal_boards
+
     def best_next(self, board: Board, depth: int,
                   parent_alpha: Optional[int] = None,
                   parent_beta: Optional[int] = None):
-        # print(f'>>> {depth} {parent_alpha} {parent_beta}')
         subs = []
         select = max if depth % 2 == 1 else min
+        is_maximizing = (select is max)
         alpha, beta = None, None
-        sub_boards = board.next_boards()
-        if depth != self.max_depth:
-            # 这里的排序是为了 alpha-beta 剪枝更有效
-            sub_boards = sorted(sub_boards,
-                                key=self.evaluate,
-                                reverse=(select is max))
+        
+        # 获取候选棋盘（现在已经通过board.next_boards()进行了空间缩减）
+        sub_boards = list(board.next_boards())
+        
+        # 智能排序：关键位置优先，然后按评估值排序
+        if depth != self.max_depth and len(sub_boards) > 1:
+            sub_boards = self._sort_boards_by_priority(sub_boards, board, is_maximizing)
+        
         for b in sub_boards:
             if depth == self.max_depth:
                 s = self.evaluate(b)
             else:
                 s, _ = self.best_next(b, depth+1, alpha, beta)
             subs.append((s, b))
+            
             if select is max:
                 if alpha is None or s > alpha:
                     alpha = s
                 if parent_beta is not None and alpha >= parent_beta:
-                    # print(f">>> Break on {alpha} >= {parent_beta}")
                     break
             else:
                 if beta is None or s < beta:
                     beta = s
                 if parent_alpha is not None and beta <= parent_alpha:
-                    # print(f">>> Break on {beta} <= {parent_alpha}")
                     break
-        return select(subs, key=lambda sb: sb[0])
+        
+        return select(subs, key=lambda sb: sb[0]) if subs else (0, board)
 
 
 def winner(board: Board) -> str:

@@ -3,7 +3,7 @@ import contextlib
 import pathlib
 from concurrent import futures
 from .board import Board
-from .score import MMSearch
+from .score import MMSearch, winner
 from . import ui
 
 
@@ -14,6 +14,7 @@ class App:
         self.ui = ui.GUI(canvassize, self.on_event)
         self.thinking = None
         self.thinking_executor = futures.ThreadPoolExecutor(max_workers=1)
+        self.game_ended = False
         self.init_game(boardsize)
 
     def run(self):
@@ -25,6 +26,7 @@ class App:
         y = self.current.size[1] // 2
         self.mmsearch = MMSearch('b', 3)
         self.current = self.current.add(x, y)
+        self.game_ended = False
         self.ui.init_board(self.current)
         self.ui.log_message('Init game done.')
 
@@ -42,6 +44,15 @@ class App:
         else:
             yield
 
+    def check_game_end(self):
+        """检查游戏是否结束并显示弹窗"""
+        game_winner = winner(self.current)
+        if game_winner:
+            self.game_ended = True
+            self.ui.show_winner_dialog(game_winner)
+            return True
+        return False
+
     def think(self):
         assert self.thinking is None
         self.thinking = self.thinking_executor.submit(
@@ -50,13 +61,21 @@ class App:
 
     def on_event(self, event: ui.UIEvent):
         if isinstance(event, ui.BoardClick):
-            if self.thinking:
+            if self.thinking or self.game_ended:
                 return
-            self.current = self.current.add(event.x, event.y)
-            p = self.current.last_piece
-            self.ui.render_piece(p)
-            self.ui.log_message(f'You put on {p}')
-            self.think()
+            try:
+                self.current = self.current.add(event.x, event.y)
+                p = self.current.last_piece
+                self.ui.render_piece(p)
+                self.ui.log_message(f'You put on {p}')
+                
+                # 检查玩家是否获胜
+                if self.check_game_end():
+                    return
+                
+                self.think()
+            except RuntimeError as e:
+                self.ui.log_message(f'Invalid move: {e}')
         elif isinstance(event, ui.Tick):
             if self.thinking:
                 if not self.thinking.done():
@@ -72,3 +91,6 @@ class App:
                     self.thinking = None
                     self.ui.render_piece(p)
                     self.ui.log_message(f'AI put on {p}')
+                    
+                    # 检查AI是否获胜
+                    self.check_game_end()

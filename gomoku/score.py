@@ -223,5 +223,37 @@ class MMSearch:
         return select(subs, key=lambda sb: sb[0]) if subs else (0, board)
 
 
-def winner(board: Board) -> str:
-    pass
+def winner(board: Board) -> Optional[str]:
+    """检查是否有获胜者，返回获胜者颜色或None"""
+    if not board.pieces:
+        return None
+    
+    board_dict = {(x, y): p for x, y, p in board.iter_position()}
+    directions = [(1, 0), (0, 1), (1, 1), (1, -1)]
+    
+    for x, y, piece in board.iter_position():
+        if piece:
+            for dx, dy in directions:
+                count = 1
+                # 向正方向检查
+                for i in range(1, 5):
+                    nx, ny = x + i * dx, y + i * dy
+                    next_piece = board_dict.get((nx, ny))
+                    if next_piece and next_piece.color == piece.color:
+                        count += 1
+                    else:
+                        break
+                
+                # 向负方向检查
+                for i in range(1, 5):
+                    nx, ny = x - i * dx, y - i * dy
+                    prev_piece = board_dict.get((nx, ny))
+                    if prev_piece and prev_piece.color == piece.color:
+                        count += 1
+                    else:
+                        break
+                
+                if count >= 5:
+                    return piece.color
+    
+    return None

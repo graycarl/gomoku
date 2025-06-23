@@ -56,3 +56,7 @@ The codebase is organized into several modules:
 - Type hints are used throughout for better code clarity
 - Lambda functions and functional programming patterns are common
 - Print statements are used for debugging (consider removing in production)
+
+## Testing Notes
+
+- 这是一个 tkinter 的 UI 程序，不适合直接用来运行测试，如需测试，应该编写独立的测试脚本

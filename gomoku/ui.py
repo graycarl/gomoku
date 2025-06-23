@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import messagebox
 from .board import Board, Piece
 
 
@@ -117,6 +118,13 @@ class GUI:
             self.logarea.delete(s, 'end-1c')
         self.logarea.insert('end', message + '\n')
         self.logarea.see('end')
+
+
+    def show_winner_dialog(self, winner_color):
+        """显示获胜者弹窗"""
+        winner_name = "黑棋" if winner_color == 'b' else "白棋"
+        message = f"游戏结束！{winner_name}获胜！"
+        messagebox.showinfo("游戏结束", message)
 
     def mainloop(self):
         self.root.mainloop()

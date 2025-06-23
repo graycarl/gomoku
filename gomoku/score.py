@@ -5,85 +5,111 @@ from .board import Board, Piece
 
 
 class Evaluator:
-    offsets = {
-        'heng': lambda p, o: (p.x + o, p.y),
-        'shu': lambda p, o: (p.x, p.y + o),
-        'pie': lambda p, o: (p.x - o, p.y + o),
-        'na': lambda p, o: (p.x + o, p.y + o),
+    DIRECTIONS = [(1, 0), (0, 1), (1, 1), (1, -1)]
+    
+    PATTERN_SCORES = {
+        (1, 1, 1, 1, 1): 100000,  # 连五
+        (0, 1, 1, 1, 1, 0): 10000,  # 活四
+        (1, 1, 1, 1, 0): 1000,   # 冲四
+        (0, 1, 1, 1, 1): 1000,   # 冲四
+        (1, 0, 1, 1, 1): 1000,   # 跳冲四
+        (1, 1, 0, 1, 1): 1000,   # 跳冲四
+        (1, 1, 1, 0, 1): 1000,   # 跳冲四
+        (0, 1, 1, 1, 0): 800,    # 活三
+        (0, 0, 1, 1, 1, 0, 0): 800,  # 活三
+        (1, 1, 1, 0, 0): 200,    # 眠三
+        (0, 0, 1, 1, 1): 200,    # 眠三
+        (1, 0, 1, 1, 0): 200,    # 跳眠三
+        (0, 1, 1, 0, 1): 200,    # 跳眠三
+        (0, 1, 1, 0, 0): 50,     # 活二
+        (0, 0, 1, 1, 0): 50,     # 活二
+        (1, 1, 0, 0, 0): 10,     # 眠二
+        (0, 0, 0, 1, 1): 10,     # 眠二
+        (1, 0, 1, 0, 0): 10,     # 跳眠二
+        (0, 0, 1, 0, 1): 10,     # 跳眠二
     }
 
     def __init__(self, color):
         self.color = color
         self.count = 0
+        self._cache = {}
 
     def __call__(self, board: Board) -> int:
-        matrix = {(x, y): p for x, y, p in board.iter_position()}
-        mine_score = self._color_score(matrix, self.color)
+        board_hash = hash(tuple(sorted((x, y, p.color if p else None) for x, y, p in board.iter_position())))
+        if board_hash in self._cache:
+            return self._cache[board_hash]
+        
+        mine_score = self._evaluate_color(board, self.color)
         peer_color = 'b' if self.color == 'w' else 'w'
-        peer_score = self._color_score(matrix, peer_color)
+        peer_score = self._evaluate_color(board, peer_color)
+        
+        result = mine_score - int(peer_score * 1.2)
+        self._cache[board_hash] = result
         self.count += 1
-        return mine_score - int(peer_score * 1.5)
+        return result
 
-    def _color_score(self,
-                     matrix: Dict[Tuple[int, int], Optional[Piece]],
-                     color: str) -> int:
-        pieces = filter(lambda p: p and p.color == color, matrix.values())
-        # print(f'>> _color_score: {color}')
-        scores = {}
-        for p in pieces:
-            p_score = 0
-            for name, func in self.offsets.items():
-                line: List[Optional[Piece]] = []
-                for o in (-1, -2, -3, -4):
-                    try:
-                        op = matrix[func(p, o)]
-                    except KeyError:
-                        break
-                    else:
-                        if op and op.color != color:
-                            break
-                    line.insert(0, op)
-                line.append(p)
-                for o in (1, 2, 3, 4):
-                    try:
-                        op = matrix[func(p, o)]
-                    except KeyError:
-                        break
-                    else:
-                        if op and op.color != color:
-                            break
-                    line.append(op)
-                if len(line) < 5:
-                    continue
-                # Line: e.g. [0, 0, 1, 1, 0, 0]
-                p_score += self._eval_line(tuple([1 if p else 0 for p in line]))
-        scores[p] = p_score
-        return sum(scores.values())
+    def _evaluate_color(self, board: Board, color: str) -> int:
+        total_score = 0
+        board_dict = {(x, y): p for x, y, p in board.iter_position()}
+        
+        for x, y, piece in board.iter_position():
+            if piece and piece.color == color:
+                for dx, dy in self.DIRECTIONS:
+                    line_score = self._evaluate_line_from_position(board_dict, x, y, dx, dy, color)
+                    total_score += line_score
+        
+        return total_score
 
-    @functools.cache
-    def _eval_line(self, line: Tuple[int, ...]):
+    def _evaluate_line_from_position(self, board_dict: Dict, x: int, y: int, dx: int, dy: int, color: str) -> int:
+        line = []
+        
+        for i in range(-4, 5):
+            nx, ny = x + i * dx, y + i * dy
+            piece = board_dict.get((nx, ny))
+            if piece and piece.color == color:
+                line.append(1)
+            elif piece and piece.color != color:
+                line.append(-1)
+            else:
+                line.append(0)
+        
+        return self._pattern_match_score(tuple(line))
+
+    @functools.lru_cache(maxsize=10000)
+    def _pattern_match_score(self, line: Tuple[int, ...]) -> int:
         if len(line) < 5:
             return 0
+        
         score = 0
-        for shift in range(len(line) - 5 + 1):
-            pieces = line[shift:shift+5]
-            score += self._eval_five(pieces)
-        # print(f'eval_line: {score} -- {line}')
+        
+        for pattern, pattern_score in self.PATTERN_SCORES.items():
+            score += self._count_pattern_matches(line, pattern) * pattern_score
+        
+        consecutive_count = self._max_consecutive(line)
+        if consecutive_count >= 2:
+            score += consecutive_count ** 3
+        
         return score
 
-    def _eval_five(self, pieces: Tuple[int, ...]):
+    def _count_pattern_matches(self, line: Tuple[int, ...], pattern: Tuple[int, ...]) -> int:
         count = 0
-        continus, max_countinus = 0, 0
-        for p in pieces:
-            if p:
-                continus += 1
+        for i in range(len(line) - len(pattern) + 1):
+            if line[i:i+len(pattern)] == pattern:
                 count += 1
+        return count
+
+    def _max_consecutive(self, line: Tuple[int, ...]) -> int:
+        max_count = 0
+        current_count = 0
+        
+        for val in line:
+            if val == 1:
+                current_count += 1
+                max_count = max(max_count, current_count)
             else:
-                continus = 0
-            max_countinus = max(continus, max_countinus)
-        if max_countinus == 5:
-            return 9999
-        return count + pow(max_countinus, 5)
+                current_count = 0
+        
+        return max_count
 
 
 class MMSearch:

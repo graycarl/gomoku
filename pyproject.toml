@@ -1,0 +1,42 @@
+[project]
+name = "gomoku"
+version = "0.1.0"
+description = "A Gomoku (Five-in-a-Row) game with a minimax AI and a Tkinter GUI"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = []
+
+[project.scripts]
+gomoku = "gomoku.__main__:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "mypy>=1.15",
+    "pytest>=8.3",
+    "ruff>=0.9",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["gomoku"]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "C4", "SIM", "RUF"]
+# Chinese full-width punctuation is intentional in UI strings and comments.
+allowed-confusables = ["！", "：", "，", "；", "（", "）"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+files = ["gomoku", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

@@ -1,81 +1,83 @@
+"""Immutable board representation and game rules."""
+
+from __future__ import annotations
+
 import random
+from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Optional, Tuple, Iterator, List
+
+type Color = str
+type Position = tuple[int, int]
+
+DIRECTIONS: tuple[Position, ...] = ((1, 0), (0, 1), (1, 1), (1, -1))
 
 
-@dataclass(frozen=True)
+def other(color: Color) -> Color:
+    """Return the opponent color."""
+    return "w" if color == "b" else "b"
+
+
+@dataclass(frozen=True, slots=True)
 class Piece:
-    color: str
+    color: Color
     x: int
     y: int
 
     @property
-    def pos(self):
+    def pos(self) -> Position:
         return (self.x, self.y)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Board:
-    size: Tuple[int, int]
-    pieces: Tuple[Piece, ...] = ()
+    size: Position
+    pieces: tuple[Piece, ...] = ()
     step: int = 0
 
     @property
-    def next_color(self) -> str:
-        try:
-            latest = self.pieces[-1].color
-        except IndexError:
-            return 'b'
-        else:
-            return 'w' if latest == 'b' else 'b'
+    def next_color(self) -> Color:
+        if not self.pieces:
+            return "b"
+        return other(self.pieces[-1].color)
 
     @property
     def last_piece(self) -> Piece:
         return self.pieces[-1]
 
-    def add(self, x: int, y: int) -> 'Board':
+    def add(self, x: int, y: int) -> Board:
         pos = (x, y)
-        if any(map(lambda p: p.pos == pos, self.pieces)):
-            raise RuntimeError(f'Position {pos} already has piece.')
-        p = Piece(self.next_color, x, y)
-        return Board(self.size, self.pieces + (p,), step=self.step + 1)
+        if pos in {p.pos for p in self.pieces}:
+            raise RuntimeError(f"Position {pos} already has piece.")
+        piece = Piece(self.next_color, x, y)
+        return Board(self.size, (*self.pieces, piece), self.step + 1)
 
-    def iter_position(self) -> Iterator[Tuple[int, int, Optional[Piece]]]:
-        lookup = {(p.x, p.y): p for p in self.pieces}
+    def iter_position(self) -> Iterator[tuple[int, int, Piece | None]]:
+        lookup = {p.pos: p for p in self.pieces}
         for y in range(self.size[1]):
             for x in range(self.size[0]):
-                if (x, y) in lookup:
-                    yield (x, y, lookup[(x, y)])
-                else:
-                    yield (x, y, None)
+                yield (x, y, lookup.get((x, y)))
 
-    def get_candidate_positions(self, radius: int = 2) -> List[Tuple[int, int]]:
-        """获取候选位置：只考虑已有子周围的位置"""
+    def get_candidate_positions(self, radius: int = 2) -> list[Position]:
+        """Return empty positions within ``radius`` of any existing piece."""
         if not self.pieces:
-            # 空棋盘时，从中心开始
-            center_x, center_y = self.size[0] // 2, self.size[1] // 2
-            return [(center_x, center_y)]
-        
-        candidates = set()
-        occupied = {(p.x, p.y) for p in self.pieces}
-        
-        # 在所有已有子的周围radius格范围内寻找候选位置
+            return [(self.size[0] // 2, self.size[1] // 2)]
+
+        occupied = {p.pos for p in self.pieces}
+        candidates: set[Position] = set()
         for piece in self.pieces:
             for dx in range(-radius, radius + 1):
                 for dy in range(-radius, radius + 1):
-                    if dx == 0 and dy == 0:
-                        continue
                     x, y = piece.x + dx, piece.y + dy
-                    if (0 <= x < self.size[0] and 0 <= y < self.size[1] and 
-                        (x, y) not in occupied):
+                    if (dx or dy) and self.contains(x, y) and (x, y) not in occupied:
                         candidates.add((x, y))
-        
         return list(candidates)
 
-    def next_boards(self) -> Iterator['Board']:
-        # 使用候选位置过滤来大幅减少搜索空间
-        candidate_positions = self.get_candidate_positions()
-        random.shuffle(candidate_positions)
-        
-        for x, y in candidate_positions:
+    def contains(self, x: int, y: int) -> bool:
+        return 0 <= x < self.size[0] and 0 <= y < self.size[1]
+
+    def next_boards(self) -> Iterator[Board]:
+        """Yield boards for every candidate move, in random order."""
+        candidates = self.get_candidate_positions()
+        random.shuffle(candidates)
+        for x, y in candidates:
             yield self.add(x, y)

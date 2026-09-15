@@ -8,6 +8,7 @@ import datetime
 import pathlib
 from collections.abc import Iterator
 from concurrent import futures
+from typing import final
 
 from . import ui
 from .board import Board
@@ -16,6 +17,7 @@ from .score import MMSearch, winner
 PROFILE_DIR = pathlib.Path("/tmp/gomoku")
 
 
+@final
 class App:
     """Coordinates user events, the immutable board state and AI thinking."""
 
@@ -115,10 +117,9 @@ class App:
 
         self.current, elapsed = self.thinking.result()
         self.thinking = None
+        count = self.mmsearch.iter_times
         self.ui.log_message(
-            f"Thinking ... {self.mmsearch.iter_times} "
-            f"Using {elapsed.total_seconds():.2f}s",
-            amend=True,
+            f"Thinking ... {count} Using {elapsed.total_seconds():.2f}s", amend=True
         )
         piece = self.current.last_piece
         self.ui.render_piece(piece)

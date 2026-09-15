@@ -5,6 +5,7 @@ from __future__ import annotations
 import tkinter as tk
 from collections.abc import Callable
 from tkinter import messagebox
+from typing import final
 
 from .board import Board, Piece
 from .tcl import configure_tcl_environment
@@ -14,6 +15,7 @@ class UIEvent:
     """Base class for events emitted by the UI."""
 
 
+@final
 class BoardClick(UIEvent):
     def __init__(self, x: int, y: int) -> None:
         self.x = x
@@ -24,6 +26,7 @@ class Tick(UIEvent):
     """Periodic timer event used to poll the AI worker."""
 
 
+@final
 class GUI:
     """Wraps a Tk window, board canvas, control panel and log area."""
 
@@ -85,7 +88,7 @@ class GUI:
 
     def __init_logarea(self, frame: tk.Frame) -> tk.Text:
         logarea = tk.Text(frame, background="gray", wrap="word", width=40)
-        logarea.grid(column=1, row=1, padx=2, pady=4, sticky=(tk.N, tk.S, tk.E, tk.W))
+        logarea.grid(column=1, row=1, padx=2, pady=4, sticky="nsew")
         return logarea
 
     def init_board(self, board: Board) -> None:

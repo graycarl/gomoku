@@ -5,6 +5,7 @@ from __future__ import annotations
 import datetime
 import functools
 import time
+from typing import final
 
 from .board import DIRECTIONS, Board, Color, Piece, Position, other
 
@@ -74,7 +75,7 @@ def _line_window(
     dy: int,
     color: Color,
 ) -> tuple[int, ...]:
-    line = []
+    line: list[int] = []
     for i in range(-4, 5):
         piece = stones.get((x + i * dx, y + i * dy))
         if piece is None:
@@ -84,6 +85,7 @@ def _line_window(
     return tuple(line)
 
 
+@final
 class Evaluator:
     """Heuristic board evaluator; higher scores favor ``color``."""
 
@@ -117,6 +119,7 @@ class Evaluator:
         return total
 
 
+@final
 class MMSearch:
     """Minimax search with alpha-beta pruning and move ordering."""
 

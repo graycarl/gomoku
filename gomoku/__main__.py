@@ -3,8 +3,20 @@
 from __future__ import annotations
 
 import argparse
+from dataclasses import dataclass
+from typing import cast
 
 from .app import App
+
+DEFAULT_SIZE = 15
+
+
+@dataclass(frozen=True)
+class Options:
+    """Typed result of command line parsing."""
+
+    size: int = DEFAULT_SIZE
+    profile: bool = False
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -15,7 +27,7 @@ def build_parser() -> argparse.ArgumentParser:
         "size",
         type=int,
         nargs="?",
-        default=15,
+        default=DEFAULT_SIZE,
         help="board size, e.g. 15 for a 15x15 board (default: %(default)s)",
     )
     parser.add_argument(
@@ -27,9 +39,16 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(argv: list[str] | None = None) -> None:
+def parse_args(argv: list[str] | None = None) -> Options:
+    """Parse ``argv`` into a fully typed :class:`Options`."""
     args = build_parser().parse_args(argv)
-    App(boardsize=args.size, profile=args.profile).run()
+    # argparse stores options as ``Any``; the parser above fixes their types.
+    return Options(size=cast("int", args.size), profile=cast("bool", args.profile))
+
+
+def main(argv: list[str] | None = None) -> None:
+    options = parse_args(argv)
+    App(boardsize=options.size, profile=options.profile).run()
 
 
 if __name__ == "__main__":

@@ -37,6 +37,15 @@ python_version = "3.13"
 strict = true
 files = ["gomoku", "tests"]
 
+# basedpyright is used from the editor (nvim/mason).  It reads this section so a
+# plain `basedpyright .` applies the same conventions as the CI gate above.
+[tool.basedpyright]
+pythonVersion = "3.13"
+include = ["gomoku", "tests"]
+# basedpyright-only rule: Tk widget factories return the widget, so ignoring
+# their result is idiomatic and capturing every one would only add noise.
+reportUnusedCallResult = false
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
